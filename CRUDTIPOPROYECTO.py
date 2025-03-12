@@ -8,10 +8,8 @@ conexion = mysql.connector.connect(
     database="tallerinvestigacion"
 )
 
+cursor = conexion.cursor()
 print("Conexión exitosa a la base de datos")
-
-
-
 
 # Función para Crear
 def crear_tipo_proyecto(tipo):
@@ -42,28 +40,42 @@ def eliminar_tipo_proyecto(id):
     conexion.commit()
     print("Tipo de proyecto eliminado exitosamente.")
 
-# Ejemplo de uso
+# Menú interactivo
+def menu():
+    while True:
+        print("\n--- Menú CRUD ---")
+        print("1. Crear un tipo de proyecto")
+        print("2. Leer tipos de proyectos")
+        print("3. Actualizar un tipo de proyecto")
+        print("4. Eliminar un tipo de proyecto")
+        print("5. Salir")
+        
+        opcion = input("Seleccione una opción: ")
+        
+        if opcion == "1":
+            tipo = input("Ingrese el tipo de proyecto: ")
+            crear_tipo_proyecto(tipo)
+        elif opcion == "2":
+            print("Tipos de proyecto existentes:")
+            leer_tipos_proyecto()
+        elif opcion == "3":
+            id = input("Ingrese el ID del tipo de proyecto a actualizar: ")
+            nuevo_tipo = input("Ingrese el nuevo tipo de proyecto: ")
+            actualizar_tipo_proyecto(id, nuevo_tipo)
+        elif opcion == "4":
+            id = input("Ingrese el ID del tipo de proyecto a eliminar: ")
+            eliminar_tipo_proyecto(id)
+        elif opcion == "5":
+            print("Saliendo del programa...")
+            break
+        else:
+            print("Opción no válida. Intente de nuevo.")
+
+# Ejecución del menú
 try:
-    # Crear un nuevo tipo de proyecto
-    crear_tipo_proyecto("Innovación")
-
-    # Leer todos los tipos de proyecto
-    print("Tipos de proyecto existentes:")
-    leer_tipos_proyecto()
-
-    # Actualizar un tipo de proyecto
-    actualizar_tipo_proyecto(1, "Desarrollo e Innovación")
-
-    # Eliminar un tipo de proyecto
-    eliminar_tipo_proyecto(2)
-
-    # Consultar nuevamente
-    print("Tipos de proyecto después de las operaciones:")
-    leer_tipos_proyecto()
-
+    menu()
 except mysql.connector.Error as e:
     print(f"Error en la operación: {e}")
 finally:
     cursor.close()
     conexion.close()
-
