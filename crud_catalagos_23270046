@@ -1,1 +1,557 @@
+import sys
+import mysql.connector
+from mysql.connector import Error
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QVBoxLayout, QHBoxLayout, QWidget, QPushButton,
+    QTableWidget, QTableWidgetItem, QLineEdit, QLabel, QMessageBox, QTabWidget
+)
 
+class TaqueriaApp(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Sistema CRUD Catálogo")
+        self.setGeometry(100, 100, 900, 600)
+
+        try:
+            self.db = mysql.connector.connect(
+                host="localhost",
+                user="root",
+                password="oracle",
+                database="taqueria"
+            )
+            self.cursor = self.db.cursor()
+        except Error as err:
+            QMessageBox.critical(self, "Error de Conexión", f"No se pudo conectar a la base de datos: {err}")
+            sys.exit()
+
+        self.initUI()
+
+    def initUI(self):
+        self.tabs = QTabWidget()
+        self.setCentralWidget(self.tabs)
+
+        self.init_tab_empleados()
+        self.init_tab_tacos()
+        self.init_tab_carne()
+
+    def init_tab_empleados(self):
+        tab = QWidget()
+        layout = QVBoxLayout()
+
+        self.table = QTableWidget()
+        self.table.setColumnCount(3)
+        self.table.setHorizontalHeaderLabels(["ID_Empleado", "Nombre", "Puesto"])
+
+        self.inputNombre = QLineEdit()
+        self.inputNombre.setPlaceholderText("Nombre del empleado")
+
+        self.inputPuesto = QLineEdit()
+        self.inputPuesto.setPlaceholderText("Puesto (Taquero, Picador, Cobrador)")
+
+        button_style = """
+        QPushButton {
+            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                              stop:0 #FFA500, stop:1 #FF4500);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        QPushButton:hover {
+            background-color: #FF6347;
+        }
+        """
+
+        btn_layout = QVBoxLayout()
+        self.btnCrear = QPushButton("Crear Nuevo")
+        self.btnCrear.setStyleSheet(button_style)
+        self.btnCrear.clicked.connect(self.create_empleado)
+        btn_layout.addWidget(self.btnCrear)
+
+        self.btnLeer = QPushButton("Leer Datos")
+        self.btnLeer.setStyleSheet(button_style)
+        self.btnLeer.clicked.connect(self.read_empleados)
+        btn_layout.addWidget(self.btnLeer)
+
+        self.btnActualizar = QPushButton("Actualizar Seleccionado")
+        self.btnActualizar.setStyleSheet(button_style)
+        self.btnActualizar.clicked.connect(self.update_empleado)
+        btn_layout.addWidget(self.btnActualizar)
+
+        self.btnEliminar = QPushButton("Eliminar Seleccionado")
+        self.btnEliminar.setStyleSheet(button_style)
+        self.btnEliminar.clicked.connect(self.delete_empleado)
+        btn_layout.addWidget(self.btnEliminar)
+
+        btn_volver = QPushButton("Volver")
+        btn_volver.setStyleSheet(button_style)
+        btn_volver.clicked.connect(lambda: self.tabs.setCurrentIndex(0))
+        btn_layout.addWidget(btn_volver)
+
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(self.table)
+        main_layout.addLayout(btn_layout)
+
+        layout.addLayout(main_layout)
+        layout.addWidget(self.inputNombre)
+        layout.addWidget(self.inputPuesto)
+
+        tab.setLayout(layout)
+        self.tabs.addTab(tab, "Empleados")
+
+    def init_tab_tacos(self):
+        tab = QWidget()
+        layout = QVBoxLayout()
+
+        self.table_tacos = QTableWidget()
+        self.table_tacos.setColumnCount(3)
+        self.table_tacos.setHorizontalHeaderLabels(["ID_Taco", "Tipo", "Precio"])
+
+        self.inputTipoTaco = QLineEdit()
+        self.inputTipoTaco.setPlaceholderText("Tipo de taco")
+
+        self.inputPrecioTaco = QLineEdit()
+        self.inputPrecioTaco.setPlaceholderText("Precio")
+
+        button_style = """
+        QPushButton {
+            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                              stop:0 #FFA500, stop:1 #FF4500);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        QPushButton:hover {
+            background-color: #FF6347;
+        }
+        """
+
+        btn_layout = QVBoxLayout()
+        self.btnCrearTaco = QPushButton("Crear Nuevo")
+        self.btnCrearTaco.setStyleSheet(button_style)
+        self.btnCrearTaco.clicked.connect(self.create_taco)
+        btn_layout.addWidget(self.btnCrearTaco)
+
+        self.btnLeerTaco = QPushButton("Leer Datos")
+        self.btnLeerTaco.setStyleSheet(button_style)
+        self.btnLeerTaco.clicked.connect(self.read_tacos)
+        btn_layout.addWidget(self.btnLeerTaco)
+
+        self.btnActualizarTaco = QPushButton("Actualizar Seleccionado")
+        self.btnActualizarTaco.setStyleSheet(button_style)
+        self.btnActualizarTaco.clicked.connect(self.update_taco)
+        btn_layout.addWidget(self.btnActualizarTaco)
+
+        self.btnEliminarTaco = QPushButton("Eliminar Seleccionado")
+        self.btnEliminarTaco.setStyleSheet(button_style)
+        self.btnEliminarTaco.clicked.connect(self.delete_taco)
+        btn_layout.addWidget(self.btnEliminarTaco)
+
+        btn_volver = QPushButton("Volver")
+        btn_volver.setStyleSheet(button_style)
+        btn_volver.clicked.connect(lambda: self.tabs.setCurrentIndex(0))
+        btn_layout.addWidget(btn_volver)
+
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(self.table_tacos)
+        main_layout.addLayout(btn_layout)
+
+        layout.addLayout(main_layout)
+        layout.addWidget(self.inputTipoTaco)
+        layout.addWidget(self.inputPrecioTaco)
+
+        tab.setLayout(layout)
+        self.tabs.addTab(tab, "Tacos")
+
+    def init_tab_carne(self):
+        tab = QWidget()
+        layout = QVBoxLayout()
+
+        self.table_carne = QTableWidget()
+        self.table_carne.setColumnCount(3)
+        self.table_carne.setHorizontalHeaderLabels(["ID_Carne", "Cantidad", "Precio"])
+
+        self.inputCantidadCarne = QLineEdit()
+        self.inputCantidadCarne.setPlaceholderText("Cantidad (kg)")
+
+        self.inputPrecioCarne = QLineEdit()
+        self.inputPrecioCarne.setPlaceholderText("Precio por kg")
+
+        button_style = """
+        QPushButton {
+            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                              stop:0 #FFA500, stop:1 #FF4500);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        QPushButton:hover {
+            background-color: #FF6347;
+        }
+        """
+
+        btn_layout = QVBoxLayout()
+        self.btnCrearCarne = QPushButton("Crear Nuevo")
+        self.btnCrearCarne.setStyleSheet(button_style)
+        self.btnCrearCarne.clicked.connect(self.create_carne)
+        btn_layout.addWidget(self.btnCrearCarne)
+
+        self.btnLeerCarne = QPushButton("Leer Datos")
+        self.btnLeerCarne.setStyleSheet(button_style)
+        self.btnLeerCarne.clicked.connect(self.read_carne)
+        btn_layout.addWidget(self.btnLeerCarne)
+
+        self.btnActualizarCarne = QPushButton("Actualizar Seleccionado")
+        self.btnActualizarCarne.setStyleSheet(button_style)
+        self.btnActualizarCarne.clicked.connect(self.update_carne)
+        btn_layout.addWidget(self.btnActualizarCarne)
+
+        self.btnEliminarCarne = QPushButton("Eliminar Seleccionado")
+        self.btnEliminarCarne.setStyleSheet(button_style)
+        self.btnEliminarCarne.clicked.connect(self.delete_carne)
+        btn_layout.addWidget(self.btnEliminarCarne)
+
+        btn_volver = QPushButton("Volver")
+        btn_volver.setStyleSheet(button_style)
+        btn_volver.clicked.connect(lambda: self.tabs.setCurrentIndex(0))
+        btn_layout.addWidget(btn_volver)
+
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(self.table_carne)
+        main_layout.addLayout(btn_layout)
+
+        layout.addLayout(main_layout)
+        layout.addWidget(self.inputCantidadCarne)
+        layout.addWidget(self.inputPrecioCarne)
+
+        tab.setLayout(layout)
+        self.tabs.addTab(tab, "Carne")
+
+    def read_empleados(self):
+        try:
+            self.cursor.execute("SELECT * FROM Empleados")
+            rows = self.cursor.fetchall()
+            self.table.setRowCount(len(rows))
+            for rowIndex, row in enumerate(rows):
+                for colIndex, col in enumerate(row):
+                    self.table.setItem(rowIndex, colIndex, QTableWidgetItem(str(col)))
+        except Error as err:
+            QMessageBox.critical(self, "Error", f"No se pudo leer los datos: {err}")
+
+    def create_empleado(self):
+        nombre = self.inputNombre.text()
+        puesto = self.inputPuesto.text()
+        if nombre and puesto:
+            try:
+                self.cursor.execute("INSERT INTO Empleados (Nombre, Puesto) VALUES (%s, %s)", (nombre, puesto))
+                self.db.commit()
+                self.read_empleados()
+                QMessageBox.information(self, "Éxito", "Empleado creado correctamente.")
+            except Error as err:
+                QMessageBox.critical(self, "Error", f"Error al crear empleado: {err}")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Por favor, completa todos los campos.")
+
+    def update_empleado(self):
+        selected_row = self.table.currentRow()
+        if selected_row != -1:
+            id_empleado = self.table.item(selected_row, 0).text()
+            nombre = self.inputNombre.text()
+            puesto = self.inputPuesto.text()
+            if nombre and puesto:
+                try:
+                    self.cursor.execute(
+                        "UPDATE Empleados SET Nombre = %s, Puesto = %s WHERE ID_Empleado = %s",
+                        (nombre, puesto, id_empleado)
+                    )
+                    self.db.commit()
+                    self.read_empleados()
+                    QMessageBox.information(self, "Éxito", "Empleado actualizado correctamente.")
+                except Error as err:
+                    QMessageBox.critical(self, "Error", f"Error al actualizar empleado: {err}")
+            else:
+                QMessageBox.warning(self, "Advertencia", "Por favor, completa todos los campos.")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un empleado para actualizar.")
+
+    def delete_empleado(self):
+        selected_row = self.table.currentRow()
+        if selected_row != -1:
+            id_empleado = self.table.item(selected_row, 0).text()
+            try:
+                self.cursor.execute("DELETE FROM Empleados WHERE ID_Empleado = %s", (id_empleado,))
+                self.db.commit()
+                self.read_empleados()
+                QMessageBox.information(self, "Éxito", "Empleado eliminado correctamente.")
+            except Error as err:
+                QMessageBox.critical(self, "Error", f"Error al eliminar empleado: {err}")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un empleado para eliminar.")
+
+    def read_tacos(self):
+        try:
+            self.cursor.execute("SELECT * FROM Tacos")
+            rows = self.cursor.fetchall()
+            self.table_tacos.setRowCount(len(rows))
+            for rowIndex, row in enumerate(rows):
+                for colIndex, col in enumerate(row):
+                    self.table_tacos.setItem(rowIndex, colIndex, QTableWidgetItem(str(col)))
+        except Error as err:
+            QMessageBox.critical(self, "Error", f"No se pudo leer los datos: {err}")
+
+    def create_taco(self):
+        tipo = self.inputTipoTaco.text()
+        precio = self.inputPrecioTaco.text()
+        if tipo and precio:
+            try:
+                self.cursor.execute("INSERT INTO Tacos (Tipo, Precio) VALUES (%s, %s)", (tipo, precio))
+                self.db.commit()
+                self.read_tacos()
+                QMessageBox.information(self, "Éxito", "Taco creado correctamente.")
+            except Error as err:
+                QMessageBox.critical(self, "Error", f"Error al crear taco: {err}")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Por favor, completa todos los campos.")
+
+    def update_taco(self):
+        selected_row = self.table_tacos.currentRow()
+        if selected_row != -1:
+            id_taco = self.table_tacos.item(selected_row, 0).text()
+            tipo = self.inputTipoTaco.text()
+            precio = self.inputPrecioTaco.text()
+            if tipo and precio:
+                try:
+                    self.cursor.execute("UPDATE Tacos SET Tipo = %s, Precio = %s WHERE ID_Taco = %s", (tipo, precio, id_taco))
+                    self.db.commit()
+                    self.read_tacos()
+                    QMessageBox.information(self, "Éxito", "Taco actualizado correctamente.")
+                except Error as err:
+                    QMessageBox.critical(self, "Error", f"Error al actualizar taco: {err}")
+            else:
+                QMessageBox.warning(self, "Advertencia", "Por favor, completa todos los campos.")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un taco para actualizar.")
+
+    def delete_taco(self):
+        selected_row = self.table_tacos.currentRow()
+        if selected_row != -1:
+            id_taco = self.table_tacos.item(selected_row, 0).text()
+            try:
+                self.cursor.execute("DELETE FROM Tacos WHERE ID_Taco = %s", (id_taco,))
+                self.db.commit()
+                self.read_tacos()
+                QMessageBox.information(self, "Éxito", "Taco eliminado correctamente.")
+            except Error as err:
+                QMessageBox.critical(self, "Error", f"Error al eliminar taco: {err}")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un taco para eliminar.")
+
+    def read_carne(self):
+        try:
+            self.cursor.execute("SELECT * FROM Carne")
+            rows = self.cursor.fetchall()
+            self.table_carne.setRowCount(len(rows))
+            for rowIndex, row in enumerate(rows):
+                for colIndex, col in enumerate(row):
+                    self.table_carne.setItem(rowIndex, colIndex, QTableWidgetItem(str(col)))
+        except Error as err:
+            QMessageBox.critical(self, "Error", f"No se pudo leer los datos: {err}")
+
+    def create_carne(self):
+        cantidad = self.inputCantidadCarne.text()
+        precio = self.inputPrecioCarne.text()
+        if cantidad and precio:
+            try:
+                self.cursor.execute("INSERT INTO Carne (Cantidad, Precio) VALUES (%s, %s)", (cantidad, precio))
+                self.db.commit()
+                self.read_carne()
+                QMessageBox.information(self, "Éxito", "Registro de carne creado correctamente.")
+            except Error as err:
+                QMessageBox.critical(self, "Error", f"Error al crear carne: {err}")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Por favor, completa todos los campos.")
+
+    def update_carne(self):
+        selected_row = self.table_carne.currentRow()
+        if selected_row != -1:
+            id_carne = self.table_carne.item(selected_row, 0).text()
+            cantidad = self.inputCantidadCarne.text()
+            precio = self.inputPrecioCarne.text()
+            if cantidad and precio:
+                try:
+                    self.cursor.execute("UPDATE Carne SET Cantidad = %s, Precio = %s WHERE ID_Carne = %s", (cantidad, precio, id_carne))
+                    self.db.commit()
+                    self.read_carne()
+                    QMessageBox.information(self, "Éxito", "Carne actualizada correctamente.")
+                except Error as err:
+                    QMessageBox.critical(self, "Error", f"Error al actualizar carne: {err}")
+            else:
+                QMessageBox.warning(self, "Advertencia", "Por favor, completa todos los campos.")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un registro de carne para actualizar.")
+
+    def delete_carne(self):
+        selected_row = self.table_carne.currentRow()
+        if selected_row != -1:
+            id_carne = self.table_carne.item(selected_row, 0).text()
+            try:
+                self.cursor.execute("DELETE FROM Carne WHERE ID_Carne = %s", (id_carne,))
+                self.db.commit()
+                self.read_carne()
+                QMessageBox.information(self, "Éxito", "Carne eliminada correctamente.")
+            except Error as err:
+                QMessageBox.critical(self, "Error", f"Error al eliminar carne: {err}")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Selecciona un registro de carne para eliminar.")
+            # ... (todo lo anterior igual)
+        self.initUI()
+
+    def initUI(self):
+        self.tabs = QTabWidget()
+        self.setCentralWidget(self.tabs)
+
+        self.init_tab_empleados()
+        self.init_tab_tacos()
+        self.init_tab_carne()
+        self.init_tab_bebidas()  # NUEVA pestaña de bebidas
+
+    # ... (init_tab_empleados, init_tab_tacos, init_tab_carne y sus funciones CRUD)
+
+    def init_tab_bebidas(self):
+        tab = QWidget()
+        layout = QVBoxLayout()
+
+        self.table_bebidas = QTableWidget()
+        self.table_bebidas.setColumnCount(3)
+        self.table_bebidas.setHorizontalHeaderLabels(["ID_Bebida", "Tipo", "Precio"])
+
+        self.inputTipoBebida = QLineEdit()
+        self.inputTipoBebida.setPlaceholderText("Tipo de bebida")
+
+        self.inputPrecioBebida = QLineEdit()
+        self.inputPrecioBebida.setPlaceholderText("Precio")
+
+        button_style = """
+        QPushButton {
+            background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+                                              stop:0 #87CEFA, stop:1 #4682B4);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            border-radius: 10px;
+            padding: 10px;
+        }
+        QPushButton:hover {
+            background-color: #5F9EA0;
+        }
+        """
+
+        btn_layout = QVBoxLayout()
+        btnCrear = QPushButton("Crear Nuevo")
+        btnCrear.setStyleSheet(button_style)
+        btnCrear.clicked.connect(self.create_bebida)
+        btn_layout.addWidget(btnCrear)
+
+        btnLeer = QPushButton("Leer Datos")
+        btnLeer.setStyleSheet(button_style)
+        btnLeer.clicked.connect(self.read_bebidas)
+        btn_layout.addWidget(btnLeer)
+
+        btnActualizar = QPushButton("Actualizar Seleccionado")
+        btnActualizar.setStyleSheet(button_style)
+        btnActualizar.clicked.connect(self.update_bebida)
+        btn_layout.addWidget(btnActualizar)
+
+        btnEliminar = QPushButton("Eliminar Seleccionado")
+        btnEliminar.setStyleSheet(button_style)
+        btnEliminar.clicked.connect(self.delete_bebida)
+        btn_layout.addWidget(btnEliminar)
+
+        btn_volver = QPushButton("Volver")
+        btn_volver.setStyleSheet(button_style)
+        btn_volver.clicked.connect(lambda: self.tabs.setCurrentIndex(0))
+        btn_layout.addWidget(btn_volver)
+
+        main_layout = QHBoxLayout()
+        main_layout.addWidget(self.table_bebidas)
+        main_layout.addLayout(btn_layout)
+
+        layout.addLayout(main_layout)
+        layout.addWidget(self.inputTipoBebida)
+        layout.addWidget(self.inputPrecioBebida)
+
+        tab.setLayout(layout)
+        self.tabs.addTab(tab, "Bebidas")
+
+    def read_bebidas(self):
+        try:
+            self.cursor.execute("SELECT * FROM Bebidas")
+            rows = self.cursor.fetchall()
+            self.table_bebidas.setRowCount(len(rows))
+            for rowIndex, row in enumerate(rows):
+                for colIndex, col in enumerate(row):
+                    self.table_bebidas.setItem(rowIndex, colIndex, QTableWidgetItem(str(col)))
+        except Error as err:
+            QMessageBox.critical(self, "Error", f"No se pudo leer los datos: {err}")
+
+    def create_bebida(self):
+        tipo = self.inputTipoBebida.text()
+        precio = self.inputPrecioBebida.text()
+        if tipo and precio:
+            try:
+                self.cursor.execute("INSERT INTO Bebidas (Tipo, Precio) VALUES (%s, %s)", (tipo, precio))
+                self.db.commit()
+                self.read_bebidas()
+                QMessageBox.information(self, "Éxito", "Bebida creada correctamente.")
+            except Error as err:
+                QMessageBox.critical(self, "Error", f"Error al crear bebida: {err}")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Por favor, completa todos los campos.")
+
+    def update_bebida(self):
+        selected_row = self.table_bebidas.currentRow()
+        if selected_row != -1:
+            id_bebida = self.table_bebidas.item(selected_row, 0).text()
+            tipo = self.inputTipoBebida.text()
+            precio = self.inputPrecioBebida.text()
+            if tipo and precio:
+                try:
+                    self.cursor.execute(
+                        "UPDATE Bebidas SET Tipo = %s, Precio = %s WHERE ID_Bebida = %s",
+                        (tipo, precio, id_bebida)
+                    )
+                    self.db.commit()
+                    self.read_bebidas()
+                    QMessageBox.information(self, "Éxito", "Bebida actualizada correctamente.")
+                except Error as err:
+                    QMessageBox.critical(self, "Error", f"Error al actualizar bebida: {err}")
+            else:
+                QMessageBox.warning(self, "Advertencia", "Por favor, completa todos los campos.")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Selecciona una bebida para actualizar.")
+
+    def delete_bebida(self):
+        selected_row = self.table_bebidas.currentRow()
+        if selected_row != -1:
+            id_bebida = self.table_bebidas.item(selected_row, 0).text()
+            try:
+                self.cursor.execute("DELETE FROM Bebidas WHERE ID_Bebida = %s", (id_bebida,))
+                self.db.commit()
+                self.read_bebidas()
+                QMessageBox.information(self, "Éxito", "Bebida eliminada correctamente.")
+            except Error as err:
+                QMessageBox.critical(self, "Error", f"Error al eliminar bebida: {err}")
+        else:
+            QMessageBox.warning(self, "Advertencia", "Selecciona una bebida para eliminar.")
+
+
+# Inicialización de la aplicación
+app = QApplication(sys.argv)
+window = TaqueriaApp()
+window.show()
+sys.exit(app.exec())
